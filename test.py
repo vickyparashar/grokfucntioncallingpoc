@@ -12,7 +12,10 @@ headers = {
 
 # Define the function to calculate the sum of two numbers
 def calculate_sum_of_two_numbers(number1, number2):
-    return number1 + number2
+    # Ensure that the numbers are integers, then calculate the sum
+    result = number1 + number2
+    return f"Sum is {result}"
+
 
 # Updated tools definition with correct schema
 tools = [
@@ -55,22 +58,33 @@ response = requests.post(
         "tools": tools,
         "tool_choice": "auto",  # Automatically choose a tool (function) if needed
         "max_tokens": 4096
-    }
+    },
+    verify=False
 )
 
 # Handle the response
 if response.status_code == 200:
     response_data = response.json()
-    print("Grok's response:", response_data)
+    #print("Grok's response:", response_data)
 
-    # # Simulate Grok calling the function if it was part of the response
-    # if 'function_call' in response_data:
-    #     function_call = response_data['function_call']
-    #     if function_call['name'] == 'calculate_sum_of_two_numbers':
-    #         params = function_call['parameters']
-    #         number1 = params['number1']
-    #         number2 = params['number2']
-    #         result = calculate_sum_of_two_numbers(number1, number2)
-    #         print(f"Result of {number1} + {number2} = {result}")
+    # Check if there are tool calls in the response
+    if 'choices' in response_data and len(response_data['choices']) > 0:
+        choice = response_data['choices'][0]
+        if 'tool_calls' in choice['message']:
+            # Extract the tool call (function call) from the response
+            tool_call = choice['message']['tool_calls'][0]
+            function_name = tool_call['function']['name']
+            arguments = tool_call['function']['arguments']
+
+            # Parse the arguments (assuming it's in JSON string format)
+            import json
+            args = json.loads(arguments)
+
+            # Simulate Grok calling the function with extracted arguments
+            if function_name == 'calculate_sum_of_two_numbers':
+                number1 = args['number1']
+                number2 = args['number2']
+                result = calculate_sum_of_two_numbers(number1, number2)
+                print(f"Result of {number1} + {number2} = {result}")
 else:
     print(f"Error: {response.status_code} - {response.text}")
